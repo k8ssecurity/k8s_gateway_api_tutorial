@@ -44,7 +44,7 @@
 # - ai.provider.openai — built-in OpenAI provider. Upstream defaults to
 #   api.openai.com:443 over TLS, so no host/port/SNI is needed (unlike the
 #   MCP backend, which targets a custom host).
-# - openai.model — pins the model. The agent sends gpt-4o-mini too; pinning
+# - openai.model — pins the model. The agent sends gpt-4o too; pinning
 #   here also lets the gateway enforce/allow-list the model centrally.
 # - policies.auth.secretRef — the gateway injects the Authorization header
 #   from the openai-secret Secret. Inline `key:` is also possible but less
@@ -58,7 +58,7 @@ spec:
   ai:
     provider:
       openai:
-        model: gpt-4o-mini
+        model: gpt-4o
   policies:
     auth:
       secretRef:
@@ -98,7 +98,7 @@ spec:
 #
 #   curl -s http://localhost:8081/openai/chat/completions \
 #     -H 'content-type: application/json' \
-#     -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"hi"}]}' | jq
+#     -d '{"model":"gpt-4o","messages":[{"role":"user","content":"hi"}]}' | jq
 #
 # (Port 8081 by lab convention: agentgateway on 8081, Envoy webapp on 8080.)
 #
