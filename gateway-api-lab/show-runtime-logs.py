@@ -129,6 +129,12 @@ def main():
     if message:
         print(message, file=sys.stderr)
     
+    if not logs:
+        print("No log entries found.", file=sys.stdout)
+        print("\nThe log file exists but contains no entries yet.", file=sys.stdout)
+        print("Runtime logs will be written here when Playwright MCP or other clients are used.", file=sys.stdout)
+        return 0
+    
     print(f"Found {len(logs)} log entries:", file=sys.stdout)
     print(file=sys.stdout)
     

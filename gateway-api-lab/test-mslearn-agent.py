@@ -101,10 +101,6 @@ class JSONLLogger:
         """Context manager exit - closes the log file."""
         self.close()
         return False
-    
-    def __del__(self) -> None:
-        """Clean up: close the log file."""
-        self.close()
         
     def log(self, level: str, message: str, **fields) -> None:
         """Log an entry in JSONL format."""
