@@ -1,0 +1,44 @@
+# =============================================================================
+# Access logging for Agent Router (formerly Envoy AI Gateway)
+# =============================================================================
+# Logs EVERY interaction through the gateway as one JSON line: method, path,
+# status, latency, bytes, upstream, request-id — plus the RESOLVED MODEL that
+# Agent Router puts on the x-ai-eg-model header. This is metadata-level logging
+# (no prompt/response bodies — Envoy access logs don't include bodies; for
+# prompt content use the guardrail ext_proc, which already sees it).
+#
+# Attaches by editing the EnvoyProxy that this gateway already references via
+# Gateway.spec.infrastructure.parametersRef (envoy-ai-gateway-basic).
+#
+# APPLY:  kubectl apply -f agent-router-guardrail/access-log.yaml
+# VIEW :  kubectl -n envoy-gateway-system logs deploy/<envoy-...> -f | jq .
+# REVERT: kubectl -n default patch envoyproxy envoy-ai-gateway-basic \
+#           --type json -p '[{"op":"remove","path":"/spec/telemetry/accessLog"}]'
+# =============================================================================
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: envoy-ai-gateway-basic
+  namespace: default
+spec:
+  telemetry:
+    accessLog:
+      settings:
+        - format:
+            type: JSON
+            json:
+              start_time: "%START_TIME%"
+              method: "%REQ(:METHOD)%"
+              path: "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%"
+              status: "%RESPONSE_CODE%"
+              model: "%REQ(X-AI-EG-MODEL)%"          # resolved model (Agent Router)
+              duration_ms: "%DURATION%"
+              bytes_received: "%BYTES_RECEIVED%"
+              bytes_sent: "%BYTES_SENT%"
+              upstream: "%UPSTREAM_HOST%"
+              response_flags: "%RESPONSE_FLAGS%"
+              request_id: "%REQ(X-REQUEST-ID)%"
+          sinks:
+            - type: File
+              file:
+                path: /dev/stdout
