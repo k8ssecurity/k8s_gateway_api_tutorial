@@ -1,4 +1,4 @@
-# Kubernetes Gateway API Lab
+# babanasoep
 
 A complete hands-on lab for the Kubernetes Gateway API. You get a local KIND cluster with Cilium, a LoadBalancer (MetalLB or Cilium LB-IPAM — your choice), Envoy Gateway, and Agentgateway all wired together, plus two tutorial docs that walk through the setup at different depths.
 
