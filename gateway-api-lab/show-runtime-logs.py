@@ -15,8 +15,11 @@ import sys
 from pathlib import Path
 
 
+DEFAULT_LOG_PATH = "/home/runner/work/_temp/runtime-logs/fw.jsonl"
+
+
 def load_jsonl_logs(log_path):
-    """Load and parse JSONL log file."""
+    """Load and parse JSONL log file. Skips invalid lines and reports them as warnings."""
     path = Path(log_path)
     
     if not path.exists():
@@ -27,6 +30,7 @@ def load_jsonl_logs(log_path):
     
     try:
         logs = []
+        errors = []
         with open(path, 'r') as f:
             for line_num, line in enumerate(f, 1):
                 line = line.strip()
@@ -35,7 +39,15 @@ def load_jsonl_logs(log_path):
                 try:
                     logs.append(json.loads(line))
                 except json.JSONDecodeError as e:
-                    return None, f"Failed to parse JSON at line {line_num}: {e}\nLine: {line}"
+                    errors.append(f"Line {line_num}: {e}")
+        
+        # Report any parsing errors as warnings
+        if errors:
+            warning = f"Loaded {len(logs)} valid log entries. Skipped {len(errors)} invalid lines:\n" + "\n".join(errors[:5])
+            if len(errors) > 5:
+                warning += f"\n... and {len(errors) - 5} more invalid lines"
+            return logs, warning
+        
         return logs, None
     except IOError as e:
         return None, f"Failed to read file: {e}"
@@ -88,7 +100,7 @@ def main():
     )
     parser.add_argument(
         "--log-path",
-        default="/home/runner/work/_temp/runtime-logs/fw.jsonl",
+        default=DEFAULT_LOG_PATH,
         help="Path to the fw.jsonl log file"
     )
     parser.add_argument(
@@ -100,13 +112,17 @@ def main():
     
     args = parser.parse_args()
     
-    logs, error = load_jsonl_logs(args.log_path)
+    logs, warning = load_jsonl_logs(args.log_path)
     
-    if error:
-        print(f"Error: {error}", file=sys.stderr)
+    # Report parsing warnings if any
+    if warning:
+        print(f"Warning: {warning}", file=sys.stderr)
+    
+    if logs is None:
+        print(f"Error: {warning}", file=sys.stderr)
         print(f"\nTo troubleshoot gateway and MCP interactions, make sure:", file=sys.stderr)
         print(f"1. The test script or gateway has been executed", file=sys.stderr)
-        print(f"2. The runtime logs directory exists: /home/runner/work/_temp/runtime-logs/", file=sys.stderr)
+        print(f"2. The runtime logs directory exists: {DEFAULT_LOG_PATH.rsplit('/', 1)[0]}/", file=sys.stderr)
         print(f"3. Pass --log-path if your logs are in a different location", file=sys.stderr)
         return 1
     
