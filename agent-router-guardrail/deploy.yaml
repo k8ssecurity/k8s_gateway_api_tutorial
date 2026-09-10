@@ -1,0 +1,98 @@
+# =============================================================================
+# Guardrail ext_proc for Agent Router (formerly Envoy AI Gateway)
+# =============================================================================
+# Attaches our Envoy ext_proc guardrail to the AIGatewayRoute's generated
+# HTTPRoute via Envoy Gateway's EnvoyExtensionPolicy. On REAL Envoy the
+# ImmediateResponse(403) block works (unlike agentgateway v1.2.1).
+#
+# Target route: envoy-ai-gateway-basic (default ns) -> mock testupstream,
+# selected by body model "some-cool-self-hosted-model" (no real key needed).
+#
+# BUILD (docker-desktop shares the docker image store):
+#   docker build -t agent-router-guardrail:poc ./agent-router-guardrail
+# APPLY:
+#   kubectl apply -f agent-router-guardrail/deploy.yaml
+# =============================================================================
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-router-guardrail
+  namespace: default
+  labels: { app: agent-router-guardrail }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: agent-router-guardrail }
+  template:
+    metadata:
+      labels: { app: agent-router-guardrail }
+    spec:
+      containers:
+        - name: guardrail
+          # docker-desktop k8s uses a separate containerd namespace from the
+          # docker build store, so a local tag can't be pulled with Never.
+          # Push to a local registry instead (host port 5000 is taken by macOS
+          # AirPlay/ControlCenter, so we use 5001):
+          #   docker run -d -p 5001:5000 --name local-registry registry:2
+          #   docker tag agent-router-guardrail:poc localhost:5001/agent-router-guardrail:poc
+          #   docker push localhost:5001/agent-router-guardrail:poc
+          image: localhost:5001/agent-router-guardrail:poc
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 18080
+          resources:
+            requests: { memory: "16Mi", cpu: "20m" }
+            limits: { memory: "64Mi", cpu: "100m" }
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-router-guardrail
+  namespace: default
+  labels: { app: agent-router-guardrail }
+spec:
+  selector: { app: agent-router-guardrail }
+  ports:
+    - name: grpc
+      port: 18080
+      targetPort: 18080
+      protocol: TCP
+      appProtocol: grpc      # ext_proc is gRPC/h2c
+
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyExtensionPolicy
+metadata:
+  name: llm-intent-guardrail
+  namespace: default
+spec:
+  targetRefs:
+    # Both HTTPRoutes generated from the AIGatewayRoutes:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: envoy-ai-gateway-basic          # -> mock testupstream
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: envoy-ai-gateway-basic-openai   # -> real OpenAI (for response masking demo)
+  extProc:
+    - backendRefs:
+        - name: agent-router-guardrail
+          port: 18080
+      processingMode:
+        request:
+          body: Buffered               # prompt guard: block "execute"  (WORKS)
+        # NOTE: response masking is intentionally NOT enabled here. Buffering the
+        # response in a second ext_proc collides with Agent Router's OWN ext_proc
+        # (which processes the response for token metering / OpenAI-schema
+        # translation) and yields HTTP 500. See README "Response masking" for the
+        # finding. The response-side code in main.go is retained but dormant
+        # until this is wired without clashing (e.g. on a non-AI HTTPRoute).
+        # response:
+        #   body: Buffered
+
+# =============================================================================
+# CLEANUP: kubectl delete -f agent-router-guardrail/deploy.yaml
+# =============================================================================
