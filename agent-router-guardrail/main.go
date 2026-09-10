@@ -15,9 +15,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net"
+	"os"
 	"regexp"
 	"strings"
 
@@ -132,7 +134,9 @@ func logPrompt(reqID, path, leg, decision string, body []byte) {
 		entry["raw"] = string(body)
 	}
 	b, _ := json.Marshal(entry)
-	log.Printf("PROMPT %s", b)
+	// Emit a PURE JSON line (no log timestamp prefix) so `kubectl logs | jq`
+	// works directly. Filter with: grep '"type":"prompt"'
+	fmt.Fprintln(os.Stdout, string(b))
 }
 
 func (s *server) Process(stream extprocv3.ExternalProcessor_ProcessServer) error {

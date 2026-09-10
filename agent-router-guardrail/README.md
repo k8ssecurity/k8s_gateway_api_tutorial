@@ -99,8 +99,11 @@ guardrail ext_proc already buffers the request body, so it emits one structured
 allow/block decision — tagged with the Envoy `x-request-id` so it **correlates
 with the access-log line**.
 
+The PROMPT line is emitted as a pure JSON line (no log-timestamp prefix), so it
+pipes straight into jq:
+
 ```
-kubectl -n default logs deploy/agent-router-guardrail | grep PROMPT
+kubectl -n default logs deploy/agent-router-guardrail | grep '"type":"prompt"' | jq .
 ```
 
 Verified (block case), joined by request_id:
