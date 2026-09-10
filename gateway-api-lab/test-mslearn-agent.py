@@ -48,9 +48,12 @@ agentgateway and incorporate the results into its answer.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import sys
+from datetime import datetime
+from pathlib import Path
 
 from openai import AsyncOpenAI
 from agents import (
@@ -61,6 +64,45 @@ from agents import (
     set_tracing_disabled,
 )
 from agents.mcp import MCPServerStreamableHttp
+
+
+class JSONLLogger:
+    """Logger that writes JSONL (JSON Lines) format logs for runtime troubleshooting."""
+    
+    def __init__(self, log_path: str = "/home/runner/work/_temp/runtime-logs/fw.jsonl"):
+        self.log_path = Path(log_path)
+        self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        
+    def log(self, level: str, message: str, **fields) -> None:
+        """Log an entry in JSONL format."""
+        entry = {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "level": level,
+            "message": message,
+            **fields
+        }
+        try:
+            with open(self.log_path, "a") as f:
+                f.write(json.dumps(entry) + "\n")
+        except Exception as e:
+            print(f"Warning: Failed to write log entry: {e}", file=sys.stderr)
+    
+    def info(self, message: str, **fields) -> None:
+        """Log an info entry."""
+        self.log("INFO", message, **fields)
+    
+    def error(self, message: str, **fields) -> None:
+        """Log an error entry."""
+        self.log("ERROR", message, **fields)
+    
+    def debug(self, message: str, **fields) -> None:
+        """Log a debug entry."""
+        self.log("DEBUG", message, **fields)
+
+
+# Initialize the JSONLLogger for runtime troubleshooting
+runtime_logger = JSONLLogger()
+runtime_logger.info("Test script started", script="test-mslearn-agent.py")
 
 
 # The agentgateway proxy replies to the session-ending DELETE with HTTP 202
@@ -119,50 +161,84 @@ async def main() -> int:
         f"Routing LLM inference via {LLM_URL} and MCP via {MCP_URL}",
         file=sys.stderr,
     )
+    
+    runtime_logger.info(
+        "Configuring gateway routes",
+        llm_url=LLM_URL,
+        mcp_url=MCP_URL,
+        model=MODEL
+    )
 
-    async with MCPServerStreamableHttp(
-        name="Microsoft Learn Docs",
-        params={
-            "url": MCP_URL,
-            "timeout": 30,
-        },
-        cache_tools_list=True,
-    ) as mcp_server:
-        # List the tools the gateway exposes so we see what the agent has access to.
-        tools = await mcp_server.list_tools()
-        print(
-            "Tools exposed by Microsoft Learn MCP (via agentgateway): "
-            + ", ".join(t.name for t in tools),
-            file=sys.stderr,
+    try:
+        async with MCPServerStreamableHttp(
+            name="Microsoft Learn Docs",
+            params={
+                "url": MCP_URL,
+                "timeout": 30,
+            },
+            cache_tools_list=True,
+        ) as mcp_server:
+            runtime_logger.info("MCP server connection established", mcp_url=MCP_URL)
+            
+            # List the tools the gateway exposes so we see what the agent has access to.
+            tools = await mcp_server.list_tools()
+            tool_names = [t.name for t in tools]
+            print(
+                "Tools exposed by Microsoft Learn MCP (via agentgateway): "
+                + ", ".join(tool_names),
+                file=sys.stderr,
+            )
+            runtime_logger.info(
+                "MCP tools listed",
+                tool_count=len(tool_names),
+                tools=tool_names
+            )
+
+            agent = Agent(
+                name="Microsoft docs assistant",
+                instructions=(
+                    "You are an assistant that answers questions about Microsoft "
+                    "technologies. Always use the Microsoft Learn MCP tools to "
+                    "search the official documentation before answering. When you "
+                    "use information from a doc, cite its URL."
+                ),
+                model=MODEL,
+                mcp_servers=[mcp_server],
+            )
+            runtime_logger.info("Agent created", agent_name="Microsoft docs assistant")
+
+            prompt = (
+                "What is Azure App Service, what programming languages does it "
+                "support, and what is the difference between an App Service Plan "
+                "and an App Service? Search the Microsoft Learn docs and cite "
+                "the URLs you used."
+            )
+            runtime_logger.info("Starting agent execution", prompt_length=len(prompt))
+
+            result = await Runner.run(agent, prompt)
+            print()
+            print("=" * 80)
+            print("Agent final answer:")
+            print("=" * 80)
+            print(result.final_output)
+            
+            runtime_logger.info(
+                "Agent execution completed successfully",
+                output_length=len(result.final_output)
+            )
+
+        return 0
+    
+    except Exception as e:
+        runtime_logger.error(
+            "Agent execution failed",
+            error_type=type(e).__name__,
+            error_message=str(e)
         )
-
-        agent = Agent(
-            name="Microsoft docs assistant",
-            instructions=(
-                "You are an assistant that answers questions about Microsoft "
-                "technologies. Always use the Microsoft Learn MCP tools to "
-                "search the official documentation before answering. When you "
-                "use information from a doc, cite its URL."
-            ),
-            model=MODEL,
-            mcp_servers=[mcp_server],
-        )
-
-        prompt = (
-            "What is Azure App Service, what programming languages does it "
-            "support, and what is the difference between an App Service Plan "
-            "and an App Service? Search the Microsoft Learn docs and cite "
-            "the URLs you used."
-        )
-
-        result = await Runner.run(agent, prompt)
-        print()
-        print("=" * 80)
-        print("Agent final answer:")
-        print("=" * 80)
-        print(result.final_output)
-
-    return 0
+        print(f"Error: {e}", file=sys.stderr)
+        print(f"\nFor troubleshooting, view the runtime logs:", file=sys.stderr)
+        print(f"  python3 show-runtime-logs.py", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
