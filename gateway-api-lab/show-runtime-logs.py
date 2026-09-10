@@ -19,7 +19,13 @@ DEFAULT_LOG_PATH = "/home/runner/work/_temp/runtime-logs/fw.jsonl"
 
 
 def load_jsonl_logs(log_path):
-    """Load and parse JSONL log file. Skips invalid lines and reports them as warnings."""
+    """Load and parse JSONL log file.
+    
+    Returns a tuple (logs, message) where:
+    - logs is None and message is an error string if fatal error occurs
+    - logs is a list and message is None if all lines parse successfully
+    - logs is a list and message is a warning string if some lines failed to parse
+    """
     path = Path(log_path)
     
     if not path.exists():
@@ -117,11 +123,11 @@ def main():
     if logs is None:
         # Fatal error: file not found or not readable
         print(f"Error: {warning}", file=sys.stderr)
-        print(f"\nTo troubleshoot gateway and MCP interactions, make sure:", file=sys.stderr)
-        print(f"1. The test script or gateway has been executed", file=sys.stderr)
+        print("\nTo troubleshoot gateway and MCP interactions, make sure:", file=sys.stderr)
+        print("1. The test script or gateway has been executed", file=sys.stderr)
         log_dir = str(Path(args.log_path).parent)
         print(f"2. The runtime logs directory exists: {log_dir}/", file=sys.stderr)
-        print(f"3. Pass --log-path if your logs are in a different location", file=sys.stderr)
+        print("3. Pass --log-path if your logs are in a different location", file=sys.stderr)
         return 1
     
     # Report parsing warnings if any (non-fatal: some lines were skipped)
