@@ -356,6 +356,10 @@ See [Part 7.4 of the main tutorial](kubernetes-gateway-api-tutorial.md#74-tls-pa
 When troubleshooting firewall, proxy, or gateway interactions, you can view the runtime logs captured at `/home/runner/work/_temp/runtime-logs/fw.jsonl`:
 
 ```bash
+# From the repository root
+python3 gateway-api-lab/show-runtime-logs.py
+
+# Or navigate to the lab directory first
 cd gateway-api-lab
 python3 show-runtime-logs.py
 ```
@@ -364,16 +368,16 @@ The script supports multiple output formats:
 
 ```bash
 # Pretty-printed JSON (default)
-python3 show-runtime-logs.py --format pretty
+python3 gateway-api-lab/show-runtime-logs.py --format pretty
 
 # Compact JSON array
-python3 show-runtime-logs.py --format json
+python3 gateway-api-lab/show-runtime-logs.py --format json
 
 # Plain text with key fields highlighted
-python3 show-runtime-logs.py --format text
+python3 gateway-api-lab/show-runtime-logs.py --format text
 
 # If your logs are in a different location
-python3 show-runtime-logs.py --log-path /path/to/fw.jsonl
+python3 gateway-api-lab/show-runtime-logs.py --log-path /path/to/fw.jsonl
 ```
 
 These logs show all captured HTTP proxy requests, DNS activity, firewall events, and system information, with timestamps and details for debugging network or gateway issues.

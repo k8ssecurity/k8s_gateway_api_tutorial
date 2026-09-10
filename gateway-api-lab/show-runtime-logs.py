@@ -17,6 +17,7 @@ from pathlib import Path
 
 DEFAULT_LOG_PATH = "/home/runner/work/_temp/runtime-logs/fw.jsonl"
 PRIORITY_KEYS = ('time', 'timestamp', 'level', 'msg', 'message', 'error', 'status', 'path', 'method')
+PRIORITY_KEYS_SET = set(PRIORITY_KEYS)
 
 
 def load_jsonl_logs(log_path):
@@ -78,7 +79,6 @@ def format_json(logs):
 def format_text(logs):
     """Format logs as plain text with key fields."""
     output = []
-    priority_set = set(PRIORITY_KEYS)
     
     for i, log in enumerate(logs, 1):
         output.append(f"--- Log Entry {i} ---")
@@ -93,7 +93,7 @@ def format_text(logs):
         
         # Show any remaining fields
         for key, value in log.items():
-            if key not in priority_set:
+            if key not in PRIORITY_KEYS_SET:
                 if isinstance(value, (dict, list)):
                     value = json.dumps(value, indent=2)
                 output.append(f"{key}: {value}")
