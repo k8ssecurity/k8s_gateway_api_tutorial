@@ -27,6 +27,7 @@ def load_jsonl_logs(log_path):
     
     try:
         logs = []
+        errors = []
         with open(path, 'r') as f:
             for line_num, line in enumerate(f, 1):
                 line = line.strip()
@@ -35,8 +36,20 @@ def load_jsonl_logs(log_path):
                 try:
                     logs.append(json.loads(line))
                 except json.JSONDecodeError as e:
-                    return None, f"Failed to parse JSON at line {line_num}: {e}\nLine: {line}"
-        return logs, None
+                    # Skip malformed lines and record the error for warning
+                    errors.append(f"Line {line_num}: {e}")
+        
+        # If we parsed some logs, return them even if there were errors
+        if logs:
+            if errors:
+                warning = f"Warning: Skipped {len(errors)} malformed line(s) while parsing."
+                return logs, warning
+            return logs, None
+        elif errors:
+            # No valid logs parsed, report the errors
+            return None, f"Failed to parse any valid log entries:\n" + "\n".join(errors[:5])
+        else:
+            return None, "No log entries found"
     except IOError as e:
         return None, f"Failed to read file: {e}"
 
@@ -100,19 +113,24 @@ def main():
     
     args = parser.parse_args()
     
-    logs, error = load_jsonl_logs(args.log_path)
+    logs, message = load_jsonl_logs(args.log_path)
     
-    if error:
-        print(f"Error: {error}", file=sys.stderr)
-        print(f"\nTo troubleshoot Playwright MCP interactions, make sure:", file=sys.stderr)
-        print(f"1. Playwright MCP has been executed", file=sys.stderr)
-        print(f"2. The runtime logs directory exists: /home/runner/work/_temp/runtime-logs/", file=sys.stderr)
-        print(f"3. Pass --log-path if your logs are in a different location", file=sys.stderr)
+    if logs is None:
+        # True error case - no logs were parsed
+        print(f"Error: {message}", file=sys.stderr)
+        print("\nTo troubleshoot Playwright MCP interactions, make sure:", file=sys.stderr)
+        print("1. Playwright MCP has been executed", file=sys.stderr)
+        print("2. The runtime logs directory exists: /home/runner/work/_temp/runtime-logs/", file=sys.stderr)
+        print("3. Pass --log-path if your logs are in a different location", file=sys.stderr)
         return 1
     
     if not logs:
         print("No logs found in the file.", file=sys.stderr)
         return 0
+    
+    # Display warning if there were parsing issues
+    if message:
+        print(message, file=sys.stderr)
     
     print(f"Found {len(logs)} log entries:", file=sys.stdout)
     print(file=sys.stdout)

@@ -52,7 +52,7 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from openai import AsyncOpenAI
@@ -76,7 +76,7 @@ class JSONLLogger:
     def log(self, level: str, message: str, **fields) -> None:
         """Log an entry in JSONL format."""
         entry = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": level,
             "message": message,
             **fields
@@ -236,8 +236,8 @@ async def main() -> int:
             error_message=str(e)
         )
         print(f"Error: {e}", file=sys.stderr)
-        print(f"\nFor troubleshooting, view the runtime logs:", file=sys.stderr)
-        print(f"  python3 show-runtime-logs.py", file=sys.stderr)
+        print("\nFor troubleshooting, view the runtime logs:", file=sys.stderr)
+        print("  python3 show-runtime-logs.py", file=sys.stderr)
         return 1
 
 
