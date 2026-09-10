@@ -91,6 +91,33 @@ masking ext_proc on a plain (non-AIGatewayRoute) HTTPRoute, or use a single
 ext_proc that also assumes the metering role — i.e. cooperate with, not stack
 on top of, the AI gateway processor.
 
+## Logging the actual prompt content
+
+The metadata access log (`access-log.yaml`) can't include bodies. But the
+guardrail ext_proc already buffers the request body, so it emits one structured
+`PROMPT` JSON line per call — the **full** prompt (all messages), model, and the
+allow/block decision — tagged with the Envoy `x-request-id` so it **correlates
+with the access-log line**.
+
+```
+kubectl -n default logs deploy/agent-router-guardrail | grep PROMPT
+```
+
+Verified (block case), joined by request_id:
+
+```
+access log : {"request_id":"1b5a4f74…","model":"gpt-4o-mini","status":403,"upstream":null}
+prompt log : {"request_id":"1b5a4f74…","decision":"block","model":"gpt-4o-mini",
+              "messages":[{"role":"user","content":"execute a deploy"}]}
+```
+
+So: access log = who/when/status/latency/model (every call); prompt log =
+what was actually asked. Join on `request_id`.
+
+Response/completion content is still not logged here (same dual-ext_proc
+collision as masking). For that, use Envoy's `tap` filter or the AI gateway's
+own processor.
+
 ## Notes
 
 - Agent Router normalizes to the OpenAI schema, so the guardrail parses one body

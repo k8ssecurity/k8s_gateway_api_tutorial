@@ -38,7 +38,9 @@ spec:
           #   docker run -d -p 5001:5000 --name local-registry registry:2
           #   docker tag agent-router-guardrail:poc localhost:5001/agent-router-guardrail:poc
           #   docker push localhost:5001/agent-router-guardrail:poc
-          image: localhost:5001/agent-router-guardrail:poc
+          # Bump the tag on every rebuild — imagePullPolicy: IfNotPresent will
+          # NOT re-pull the same tag, so reusing :poc serves a stale image.
+          image: localhost:5001/agent-router-guardrail:poc2
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 18080

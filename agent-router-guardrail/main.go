@@ -113,8 +113,30 @@ func summarize(leg string, body []byte) string {
 	return ""
 }
 
+// logPrompt emits one structured JSON line with the FULL prompt (all messages),
+// correlated to the Envoy access log via request_id. This is the "log the actual
+// prompt content" hook the metadata access log can't provide.
+func logPrompt(reqID, path, leg, decision string, body []byte) {
+	entry := map[string]interface{}{
+		"type": "prompt", "request_id": reqID, "path": path,
+		"leg": leg, "decision": decision,
+	}
+	var m struct {
+		Model    string                   `json:"model"`
+		Messages []map[string]interface{} `json:"messages"`
+	}
+	if json.Unmarshal(body, &m) == nil && len(m.Messages) > 0 {
+		entry["model"] = m.Model
+		entry["messages"] = m.Messages
+	} else {
+		entry["raw"] = string(body)
+	}
+	b, _ := json.Marshal(entry)
+	log.Printf("PROMPT %s", b)
+}
+
 func (s *server) Process(stream extprocv3.ExternalProcessor_ProcessServer) error {
-	var path string
+	var path, reqID string
 	var reqBuf, respBuf []byte
 	for {
 		req, err := stream.Recv()
@@ -129,8 +151,11 @@ func (s *server) Process(stream extprocv3.ExternalProcessor_ProcessServer) error
 
 		case *extprocv3.ProcessingRequest_RequestHeaders:
 			for _, h := range v.RequestHeaders.GetHeaders().GetHeaders() {
-				if h.GetKey() == ":path" {
+				switch h.GetKey() {
+				case ":path":
 					path = headerValue(h)
+				case "x-request-id":
+					reqID = headerValue(h) // correlates with the access log line
 				}
 			}
 			log.Printf("→ request headers, path=%s", path)
@@ -155,6 +180,11 @@ func (s *server) Process(stream extprocv3.ExternalProcessor_ProcessServer) error
 			log.Printf("→ request body total=%d", len(reqBuf))
 
 			blocked, leg, reason := evaluate(path, reqBuf)
+			decision := "allow"
+			if blocked {
+				decision = "block"
+			}
+			logPrompt(reqID, path, leg, decision, reqBuf) // full prompt content, correlated by request_id
 			if blocked {
 				log.Printf("⛔ BLOCK  leg=%s path=%s — %s", leg, path, reason)
 				msg := "Blocked by intent guardrail (" + leg + "): " + reason + "\n"
