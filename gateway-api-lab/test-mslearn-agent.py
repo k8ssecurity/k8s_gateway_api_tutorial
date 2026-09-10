@@ -72,6 +72,25 @@ class JSONLLogger:
     def __init__(self, log_path: str = "/home/runner/work/_temp/runtime-logs/fw.jsonl"):
         self.log_path = Path(log_path)
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        # Keep file handle open for better performance with frequent logging
+        self.log_file = None
+        self._open_log_file()
+        
+    def _open_log_file(self) -> None:
+        """Open the log file in append mode."""
+        try:
+            self.log_file = open(self.log_path, "a")
+        except Exception as e:
+            print(f"Warning: Failed to open log file: {e}", file=sys.stderr)
+            self.log_file = None
+    
+    def __del__(self) -> None:
+        """Clean up: close the log file."""
+        if self.log_file is not None:
+            try:
+                self.log_file.close()
+            except Exception:
+                pass  # Silently ignore errors during cleanup
         
     def log(self, level: str, message: str, **fields) -> None:
         """Log an entry in JSONL format."""
@@ -82,8 +101,11 @@ class JSONLLogger:
             **fields
         }
         try:
-            with open(self.log_path, "a") as f:
-                f.write(json.dumps(entry) + "\n")
+            if self.log_file is None:
+                self._open_log_file()
+            if self.log_file is not None:
+                self.log_file.write(json.dumps(entry) + "\n")
+                self.log_file.flush()  # Ensure data is written immediately
         except Exception as e:
             print(f"Warning: Failed to write log entry: {e}", file=sys.stderr)
     

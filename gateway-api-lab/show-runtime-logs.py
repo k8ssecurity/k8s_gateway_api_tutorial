@@ -47,7 +47,7 @@ def load_jsonl_logs(log_path):
             return logs, None
         elif errors:
             # No valid logs parsed, report the errors
-            return None, f"Failed to parse any valid log entries:\n" + "\n".join(errors[:5])
+            return None, "Failed to parse any valid log entries:\n" + "\n".join(errors[:5])
         else:
             return None, "No log entries found"
     except IOError as e:
