@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Display runtime logs (fw.jsonl) for troubleshooting gateway and MCP interactions.
+Display runtime logs (fw.jsonl) for troubleshooting firewall and gateway interactions.
 
 Usage:
     python3 show-runtime-logs.py [--log-path PATH] [--format FORMAT]
