@@ -351,6 +351,33 @@ See [Part 7.4 of the main tutorial](kubernetes-gateway-api-tutorial.md#74-tls-pa
 
 ## Troubleshooting
 
+### Viewing runtime logs for firewall and gateway interactions
+
+When troubleshooting firewall, proxy, or gateway interactions, you can view the runtime logs captured at `/home/runner/work/_temp/runtime-logs/fw.jsonl`:
+
+```bash
+cd gateway-api-lab
+python3 show-runtime-logs.py
+```
+
+The script supports multiple output formats:
+
+```bash
+# Pretty-printed JSON (default)
+python3 show-runtime-logs.py --format pretty
+
+# Compact JSON array
+python3 show-runtime-logs.py --format json
+
+# Plain text with key fields highlighted
+python3 show-runtime-logs.py --format text
+
+# If your logs are in a different location
+python3 show-runtime-logs.py --log-path /path/to/fw.jsonl
+```
+
+These logs show all captured HTTP proxy requests, DNS activity, firewall events, and system information, with timestamps and details for debugging network or gateway issues.
+
 ### Gateway has `PROGRAMMED=False` or no `ADDRESS`
 
 Your LoadBalancer hasn't assigned an IP. Check the pool for whichever `LB_PROVIDER` you used:
