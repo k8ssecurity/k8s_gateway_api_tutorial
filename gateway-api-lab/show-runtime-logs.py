@@ -119,7 +119,8 @@ def main():
         print(f"Error: {warning}", file=sys.stderr)
         print(f"\nTo troubleshoot gateway and MCP interactions, make sure:", file=sys.stderr)
         print(f"1. The test script or gateway has been executed", file=sys.stderr)
-        print(f"2. The runtime logs directory exists: {DEFAULT_LOG_PATH.rsplit('/', 1)[0]}/", file=sys.stderr)
+        log_dir = str(Path(args.log_path).parent)
+        print(f"2. The runtime logs directory exists: {log_dir}/", file=sys.stderr)
         print(f"3. Pass --log-path if your logs are in a different location", file=sys.stderr)
         return 1
     
