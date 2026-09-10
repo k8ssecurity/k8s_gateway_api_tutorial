@@ -47,7 +47,10 @@ def load_jsonl_logs(log_path):
             return logs, None
         elif errors:
             # No valid logs parsed, report the errors
-            return None, "Failed to parse any valid log entries:\n" + "\n".join(errors[:5])
+            error_message = "Failed to parse any valid log entries:\n" + "\n".join(errors[:5])
+            if len(errors) > 5:
+                error_message += f"\n... and {len(errors) - 5} more"
+            return None, error_message
         else:
             # Empty file is valid (logging started but no events yet)
             return [], None

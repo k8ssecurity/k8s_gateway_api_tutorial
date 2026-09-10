@@ -262,15 +262,19 @@ async def main() -> int:
             return 0
         
         except Exception as e:
-            runtime_logger.error(
-                "Agent execution failed",
-                error_type=type(e).__name__,
-                error_message=str(e)
-            )
-            print(f"Error: {e}", file=sys.stderr)
-            print("\nFor troubleshooting, view the runtime logs:", file=sys.stderr)
-            print("  python3 show-runtime-logs.py", file=sys.stderr)
-            return 1
+           try:
+               runtime_logger.error(
+                   "Agent execution failed",
+                   error_type=type(e).__name__,
+                   error_message=str(e)
+               )
+           except Exception as log_error:
+               # If logging itself fails, silently continue
+               print(f"Warning: Failed to log error: {log_error}", file=sys.stderr)
+           print(f"Error: {e}", file=sys.stderr)
+           print("\nFor troubleshooting, view the runtime logs:", file=sys.stderr)
+           print("  python3 show-runtime-logs.py", file=sys.stderr)
+           return 1
     finally:
         # Ensure the logger is always closed, flushing all pending writes
         runtime_logger.close()
