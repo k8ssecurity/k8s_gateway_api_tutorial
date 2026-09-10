@@ -68,6 +68,7 @@ check_prerequisites() {
     command -v kind >/dev/null 2>&1 || error "kind is required but not installed."
     command -v helm >/dev/null 2>&1 || error "helm is required but not installed."
     command -v cilium >/dev/null 2>&1 || error "cilium CLI is required but not installed."
+    command -v openssl >/dev/null 2>&1 || error "openssl is required but not installed."
 
     # Check Docker daemon is running
     docker info >/dev/null 2>&1 || error "Docker is not running. Please start Docker."
