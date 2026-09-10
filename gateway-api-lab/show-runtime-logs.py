@@ -124,10 +124,6 @@ def main():
         print("3. Pass --log-path if your logs are in a different location", file=sys.stderr)
         return 1
     
-    if not logs:
-        print("No logs found in the file.", file=sys.stderr)
-        return 0
-    
     # Display warning if there were parsing issues
     if message:
         print(message, file=sys.stderr)

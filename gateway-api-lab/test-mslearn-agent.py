@@ -100,11 +100,6 @@ class JSONLLogger:
         self.log("DEBUG", message, **fields)
 
 
-# Initialize the JSONLLogger for runtime troubleshooting
-runtime_logger = JSONLLogger()
-runtime_logger.info("Test script started", script="test-mslearn-agent.py")
-
-
 # The agentgateway proxy replies to the session-ending DELETE with HTTP 202
 # (Accepted) — a valid success. The MCP streamable-HTTP client, however, only
 # treats 200/204 as success and logs "Session termination failed: 202" as a
@@ -157,6 +152,10 @@ set_tracing_disabled(True)
 
 
 async def main() -> int:
+    # Initialize the JSONLLogger for runtime troubleshooting
+    runtime_logger = JSONLLogger()
+    runtime_logger.info("Test script started", script="test-mslearn-agent.py")
+    
     print(
         f"Routing LLM inference via {LLM_URL} and MCP via {MCP_URL}",
         file=sys.stderr,
