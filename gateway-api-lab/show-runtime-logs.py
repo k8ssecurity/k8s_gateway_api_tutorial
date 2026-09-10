@@ -114,17 +114,18 @@ def main():
     
     logs, warning = load_jsonl_logs(args.log_path)
     
-    # Report parsing warnings if any
-    if warning:
-        print(f"Warning: {warning}", file=sys.stderr)
-    
     if logs is None:
+        # Fatal error: file not found or not readable
         print(f"Error: {warning}", file=sys.stderr)
         print(f"\nTo troubleshoot gateway and MCP interactions, make sure:", file=sys.stderr)
         print(f"1. The test script or gateway has been executed", file=sys.stderr)
         print(f"2. The runtime logs directory exists: {DEFAULT_LOG_PATH.rsplit('/', 1)[0]}/", file=sys.stderr)
         print(f"3. Pass --log-path if your logs are in a different location", file=sys.stderr)
         return 1
+    
+    # Report parsing warnings if any (non-fatal: some lines were skipped)
+    if warning:
+        print(f"Warning: {warning}", file=sys.stderr)
     
     if not logs:
         print("No logs found in the file.", file=sys.stderr)
