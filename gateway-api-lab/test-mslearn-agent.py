@@ -84,13 +84,27 @@ class JSONLLogger:
             print(f"Warning: Failed to open log file: {e}", file=sys.stderr)
             self.log_file = None
     
-    def __del__(self) -> None:
-        """Clean up: close the log file."""
+    def close(self) -> None:
+        """Close the log file explicitly."""
         if self.log_file is not None:
             try:
                 self.log_file.close()
             except Exception:
                 pass  # Silently ignore errors during cleanup
+            self.log_file = None
+    
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - closes the log file."""
+        self.close()
+        return False
+    
+    def __del__(self) -> None:
+        """Clean up: close the log file."""
+        self.close()
         
     def log(self, level: str, message: str, **fields) -> None:
         """Log an entry in JSONL format."""
