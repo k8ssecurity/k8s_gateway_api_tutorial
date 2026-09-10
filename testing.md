@@ -187,7 +187,7 @@ kubectl apply -f gateway-api-lab/12-llm-openai.yaml
 
 curl -s http://localhost:8081/openai/chat/completions \
   -H 'content-type: application/json' \
-  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"hi"}]}' \
+  -d '{"model":"gpt-5.5","messages":[{"role":"user","content":"hi"}]}' \
   | jq -r '.choices[0].message.content // .error.message'
 ```
 
@@ -424,7 +424,7 @@ kubectl create secret generic openai-secret -n agentgateway-system \
 
 # Test the LLM path directly (a 401 body echoes the masked key the gateway sent):
 curl -s http://localhost:8081/openai/chat/completions -H 'content-type: application/json' \
-  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"hi"}]}' | jq
+  -d '{"model":"gpt-5.5","messages":[{"role":"user","content":"hi"}]}' | jq
 ```
 
 Check usage/limits at https://platform.openai.com/usage.
