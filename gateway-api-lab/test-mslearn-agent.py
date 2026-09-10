@@ -87,7 +87,7 @@ LLM_URL = f"{GATEWAY_BASE}/openai"
 
 # The model used by the Agent. Override with OPENAI_MODEL if you want a
 # cheaper/faster or a stronger model.
-MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+MODEL = os.environ.get("OPENAI_MODEL", "gpt-4.5-mini")
 
 
 # Route the OpenAI Agents SDK's inference calls through agentgateway instead of

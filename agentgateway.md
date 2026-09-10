@@ -307,7 +307,7 @@ async def main():
                 "Use Microsoft Learn MCP tools to search official docs "
                 "before answering. Cite the URLs you used."
             ),
-            model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+            model=os.environ.get("OPENAI_MODEL", "gpt-4.5-mini"),
             mcp_servers=[mcp_server],
         )
         result = await Runner.run(
@@ -361,7 +361,7 @@ kubectl apply -f 12-llm-openai.yaml
 
 That manifest contains:
 
-1. **AgentgatewayBackend `openai-llm-backend`** — `spec.ai.provider.openai` (upstream defaults to `api.openai.com:443`, no SNI needed), pinned to `gpt-4o-mini`, with `policies.auth.secretRef` pointing at `openai-secret`.
+1. **AgentgatewayBackend `openai-llm-backend`** — `spec.ai.provider.openai` (upstream defaults to `api.openai.com:443`, no SNI needed), pinned to `gpt-4.5-mini`, with `policies.auth.secretRef` pointing at `openai-secret`.
 2. **HTTPRoute `openai-llm`** — attaches the backend at `/openai`. agentgateway auto-rewrites matched requests to OpenAI's `/v1/chat/completions`.
 
 ### 6.3 Smoke-test the LLM path
@@ -369,7 +369,7 @@ That manifest contains:
 ```bash
 curl -s http://localhost:8081/openai/chat/completions \
   -H 'content-type: application/json' \
-  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"hi"}]}' \
+  -d '{"model":"gpt-4.5-mini","messages":[{"role":"user","content":"hi"}]}' \
   | jq -r '.choices[0].message.content // .error.message'
 ```
 
